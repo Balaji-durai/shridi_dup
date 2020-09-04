@@ -1,0 +1,1108 @@
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
+import TrackPlayer, {
+  useTrackPlayerProgress,
+  usePlaybackState,
+  useTrackPlayerEvents,
+  TrackPlayerEvents,
+} from "react-native-track-player";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewPropTypes
+} from "react-native";
+import { heightPercentageToDP as hp,widthPercentageToDP as wp } from "react-native-responsive-screen";
+import { Constants, Colors } from "../Styles";
+import ProgressBar from './Progressbar';
+
+function ImageButton ({onPress, imageStyle, style, source}) {
+  return (
+      <TouchableOpacity onPress={onPress} style={style}>
+          <Image source={source} style={imageStyle} />
+      </TouchableOpacity>
+  );
+}
+
+ImageButton.prototype = {
+  source :PropTypes.string.isRequired,
+  onPress: PropTypes.func.isRequired,
+  style: PropTypes.object,
+  imageStyle: PropTypes.object
+}
+
+
+export default function Player(props, { navigation }) {
+  var hour = props.timerValue.Hour;
+  var minute = props.timerValue.Minute;
+  var seconds = props.timerValue.Seconds;
+  const [PlaylistData,setPlaylistData] = useState([]);
+
+  useEffect(() => {
+    getDuration(),
+  },[hour,minute,seconds])
+
+  const getDuration = () => {
+    var secsInHour= hour * 3600;
+    var secsInMinute = minute * 60;
+    var totalSecs = secsInHour + secsInMinute + seconds;
+    var milliSecs = totalSecs * 1000;
+    invokeTimeout(milliSecs);
+  }
+
+  const invokeTimeout = (milliSeconds) => {
+    setTimeout(stopPlayer,milliSeconds);
+  } 
+
+  const stopPlayer = ({navigation}) =>{
+    TrackPlayer.reset();
+    //navigation.navigate('Med_Home')
+  }
+
+  const playbackState = usePlaybackState();
+  const [trackTitle, setTrackTitle] = useState("");
+  const [trackArtwork, setTrackArtwork] = useState();
+  const [trackArtist, setTrackArtist] = useState("");
+  const playIcon = require('../../Images/play.png');
+  const previousIcon = require('../../Images/previous.jpg');
+  const nextIcon = require('../../Images/next.png');
+  const resumeIcon = require('../../Images/resume.jpg');
+  const events = [
+    TrackPlayerEvents.PLAYBACK_QUEUE_ENDED,
+  ];
+
+  useTrackPlayerEvents(["playback-track-changed"], async event => {
+    if (event.type === TrackPlayerEvents.PLAYBACK_TRACK_CHANGED) {
+      const track = await TrackPlayer.getTrack(event.nextTrack);
+      const { title, artist, artwork } = track || {};
+      setTrackTitle(title);
+      setTrackArtist(artist);
+      setTrackArtwork(artwork);
+    }
+  });
+ 
+  useTrackPlayerEvents(events, async (event) => {
+    if (event.type === TrackPlayerEvents.PLAYBACK_QUEUE_ENDED) {
+    const currentTrack = await TrackPlayer.getCurrentTrack();
+    console.log('current track:',currentTrack)
+    
+      var PlaylistData = props.timerValue.PlaylistData[1]
+      var dummyData = PlaylistData
+      PlaylistData= [];
+      console.log('pl',PlaylistData,'--')
+      PlaylistData=dummyData;
+      console.log('plData:',PlaylistData,"---",dummyData[1])
+      await TrackPlayer.add(PlaylistData);
+      await TrackPlayer.play(); 
+    /*  if (currentTrack !== null) {
+    } else {
+      console.log('the current track is present')
+      if (playbackState === TrackPlayer.STATE_PAUSED) {
+        await TrackPlayer.play();
+      }
+    } */
+  }
+  }) 
+ 
+  const { style, onNext, onPrevious, onTogglePlayback } = props;
+
+  return (
+    <View style={[styles.card, style]}>
+      <View style={[styles.ImageConatiner,{ elevation: 10, shadowColor: '#d9d9d9', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4,  borderRadius: hp(2.95)}]}>
+      <Image style={styles.cover} source={ require('../../Images/saibaba_loginScreen.jpg')} />
+      </View>
+      <Text style={styles.title}>{trackTitle}</Text>
+      <Text style={styles.artist}>{trackArtist}</Text>
+      <ProgressBar timerValue={props.timerValue}/>
+      <View>
+        <View style={{flexDirection: 'row'}}>
+           <Text style={styles.durationText}>{hour}</Text>
+           <Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{minute}</Text>
+           <Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{seconds}</Text>
+        </View>
+      </View>
+
+      <View style={styles.controls}>
+                    <ImageButton
+                        source={previousIcon}
+                        onPress={onPrevious}
+                        style={styles.changeIcon}
+                        imageStyle={styles.controlChangeIcon}
+                    />
+                    <ImageButton
+                        source={TrackPlayer.STATE_PLAYING === playbackState ? resumeIcon : playIcon}
+                        onPress={onTogglePlayback}
+                        style={styles.playPause}
+                        imageStyle={styles.controlIcon}
+                    />
+                    <ImageButton
+                        source={nextIcon}
+                        onPress={onNext}
+                        style={[styles.changeIcon,{ elevation: 3,shadowOffset: { width: -0, height: -1 },backgroundColor: Colors.white}]}
+                        imageStyle={styles.controlChangeIcon}
+                    />
+      </View>
+      <Text></Text>
+    </View>
+  );
+}
+
+Player.propTypes = {
+  style: ViewPropTypes.style,
+  onNext: PropTypes.func.isRequired,
+  onPrevious: PropTypes.func.isRequired,
+  onTogglePlayback: PropTypes.func.isRequired
+};
+
+Player.defaultProps = {
+  style: {}
+};
+
+const styles = StyleSheet.create({
+  card: {
+    flex: 1,
+    alignItems: "center",
+  },
+  ImageConatiner: {
+    width: wp('54%'),
+    height: hp(31.423),
+    marginTop: hp(1.77),
+    paddingTop: hp(1),
+    borderRadius: hp(2.211),
+  },
+  cover: {
+    width: wp('55%'),
+    height: hp(31.423),
+    borderRadius: hp(2.211),
+    flex : 1,
+    resizeMode: 'cover',
+  },
+  progress: {
+    height: hp(0.443),
+    width: wp('65.1%'),
+    marginTop: 10,
+    flexDirection: "row"
+  },
+  title: {
+    marginTop: hp(2.95),
+    fontSize: hp(2.95),
+    fontFamily: Constants.fontMedium,
+    color: Colors.SecondaryColor_2,
+    fontWeight: 'bold',
+    lineHeight: hp(2.655),
+  },
+  artist: {
+    fontSize: hp(1.77),
+    marginTop: hp(1.20),
+    fontFamily: Constants.fontRegular,
+    color: Colors.SecondaryColor_2,
+    lineHeight: hp(2.36),
+  },
+  controls: {
+    marginVertical: 20,
+    flexDirection: "row",
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  controlButtonContainer: {
+    flex: 1
+  },
+  controlButtonText: {
+    fontSize: 18,
+    textAlign: "center"
+  },
+  controlIcon: {
+    width: 40,
+    height: 40,
+    //elevation: 3,
+  },
+  controlChangeIcon: {
+    width: 30,
+    height: 30,
+    //elevation: 3,
+  },
+  playPause: {
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    padding: 10,
+    marginHorizontal: 15
+  },
+  changeIcon: {
+    borderRadius: 41,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    //elevation: 3,
+    padding: 10,
+    marginHorizontal: 15,
+  },
+  durationText: {
+    fontFamily: Constants.fontRegular,
+    fontSize: hp(1.44),
+    lineHeight: hp(2.36),
+    color: Colors.SecondaryColor_2
+  }
+});
+
+import React, { Component } from "react";
+import PropTypes from "prop-types";
+import TrackPlayer, {
+  useTrackPlayerEvents,
+  TrackPlayerEvents,
+} from "react-native-track-player";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewPropTypes
+} from "react-native";
+import { heightPercentageToDP as hp,widthPercentageToDP as wp } from "react-native-responsive-screen";
+import { Constants, Colors } from "../Styles";
+import ProgressBar from './Progressbar';
+
+function ImageButton ({onPress, imageStyle, style, source}) {
+  return (
+      <TouchableOpacity onPress={onPress} style={style}>
+          <Image source={source} style={imageStyle} />
+      </TouchableOpacity>
+  );
+}
+
+ImageButton.prototype = {
+  source :PropTypes.string.isRequired,
+  onPress: PropTypes.func.isRequired,
+  style: PropTypes.object,
+  imageStyle: PropTypes.object
+}
+
+
+export default class Player extends Component {
+  
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      // get the player stopTime(Hour,Minute,Seconds) from meditation home screen through meditation audion screen by prop drilling
+      Hour: this.props.timerValue.Hour,
+      Minute: this.props.timerValue.Minute,
+      Seconds: this.props.timerValue.Seconds,
+      PlaylistData: [],
+      trackTitle: '',
+      trackArtist: '',
+      trackArtwork: ''
+    }
+
+    useTrackPlayerEvents(["playback-track-changed"], async event => {
+      if (event.type === TrackPlayerEvents.PLAYBACK_TRACK_CHANGED) {
+        const track = await TrackPlayer.getTrack(event.nextTrack);
+        const { title, artist, artwork } = track || {};
+        this.setState({trackTitle: title});
+        this.setState({trackArtist: artist});
+        this.setState({trackArtwork: artwork});
+      }
+    });
+
+    useTrackPlayerEvents(['playback-queue-ended'], async (event) => {
+      if (event.type === TrackPlayerEvents.PLAYBACK_QUEUE_ENDED) {
+      const currentTrack = await TrackPlayer.getCurrentTrack();
+      console.log('current track:',currentTrack)
+      await TrackPlayer.reset();
+      await this.setState({PlaylistData: []});                         //clear the playlist data state otherwise it cause error on re-render
+      await this.connectApi();                                         //then get the data from server
+      await TrackPlayer.add(this.state.PlaylistData[1]);               //then set data in state  array index 1 because we cannot use spread operator in rewrite the state 
+      await TrackPlayer.play();
+      /*   var PlaylistData = props.timerValue.PlaylistData[1]
+        var dummyData = PlaylistData
+        PlaylistData= [];
+        console.log('pl',PlaylistData,'--')
+        PlaylistData=dummyData;
+        console.log('plData:',PlaylistData,"---",dummyData[1])
+        await TrackPlayer.add(PlaylistData);
+        await TrackPlayer.play(); 
+       if (currentTrack !== null) {
+      } else {
+        console.log('the current track is present')
+        if (playbackState === TrackPlayer.STATE_PAUSED) {
+          await TrackPlayer.play();
+        }
+      } */
+    }
+    }) 
+  }
+
+  //initialize the player and setup the player when component render
+  componentDidMount () {
+    this.connectApi();
+    this.getDuration();
+  }
+
+  getDuration = () => {
+    var secsInHour= this.state.Hour * 3600;
+    var secsInMinute = this.state.Minute * 60;
+    var totalSecs = secsInHour + secsInMinute + this.state.Seconds;
+    var milliSecs = totalSecs * 1000;
+    this.invokeTimeout(milliSecs);
+  }
+
+  invokeTimeout = (milliSeconds) => {
+    setTimeout(this.stopPlayer,milliSeconds);
+  } 
+
+  stopPlayer = async() =>{
+    await TrackPlayer.reset();
+    await this.props.navigation.navigate('Med_Home');
+  }
+
+  //connect the server and get data
+  connectApi = async () => {
+    console.log('you are in fetch api')
+    try { 
+      await fetch('http://10.0.2.2:3000/meditation', {
+         method: 'GET',
+       })
+       .then(res => res.json())
+       .then( async data =>{
+         //set the data in the state playlistdata array by append without overwrite 
+         this.setState({PlaylistData:[this.state.PlaylistData,data]})    
+       })
+     } catch (error) {
+       console.log('the catch error',error)
+     } 
+  } 
+
+  playbackState =async () => await TrackPlayer.getState(); 
+  playIcon = require('../../Images/play.png');
+  previousIcon = require('../../Images/previous.jpg');
+  nextIcon = require('../../Images/next.png');
+  resumeIcon = require('../../Images/resume.jpg');
+  //const { style, onNext, onPrevious, onTogglePlayback } = props;
+
+  render() {
+  return (
+    <View style={[styles.card, this.props.style]}>
+      <View style={[styles.ImageConatiner,{ elevation: 10, shadowColor: '#d9d9d9', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4,  borderRadius: hp(2.95)}]}>
+      <Image style={styles.cover} source={ require('../../Images/saibaba_loginScreen.jpg')} />
+      </View>
+      <Text style={styles.title}>{this.state.trackTitle}</Text>
+      <Text style={styles.artist}>{this.state.trackArtist}</Text>
+      <ProgressBar timerValue={this.state}/>
+      <View>
+        <View style={{flexDirection: 'row'}}>
+           <Text style={styles.durationText}>{this.state.Hour}</Text>
+           <Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{this.state.Minute}</Text>
+           <Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{this.state.Seconds}</Text>
+        </View>
+      </View>
+
+      <View style={styles.controls}>
+                    <ImageButton
+                        source={this.previousIcon}
+                        onPress={this.props.onPrevious}
+                        style={styles.changeIcon}
+                        imageStyle={styles.controlChangeIcon}
+                    />
+                    <ImageButton
+                        source={TrackPlayer.STATE_PLAYING === this.playbackState ? this.resumeIcon : this.playIcon}
+                        onPress={this.props.onTogglePlayback}
+                        style={styles.playPause}
+                        imageStyle={styles.controlIcon}
+                    />
+                    <ImageButton
+                        source={this.nextIcon}
+                        onPress={this.props.onNext}
+                        style={[styles.changeIcon,{ elevation: 3,shadowOffset: { width: -0, height: -1 },backgroundColor: Colors.white}]}
+                        imageStyle={styles.controlChangeIcon}
+                    />
+      </View>
+      <Text></Text>
+    </View>
+  );
+}
+}
+
+/*Player.propTypes = {
+  style: ViewPropTypes.style,
+  onNext: PropTypes.func.isRequired,
+  onPrevious: PropTypes.func.isRequired,
+  onTogglePlayback: PropTypes.func.isRequired
+};
+
+Player.defaultProps = {
+  style: {}
+}; */
+
+const styles = StyleSheet.create({
+  card: {
+    flex: 1,
+    alignItems: "center",
+  },
+  ImageConatiner: {
+    width: wp('54%'),
+    height: hp(31.423),
+    marginTop: hp(1.77),
+    paddingTop: hp(1),
+    borderRadius: hp(2.211),
+  },
+  cover: {
+    width: wp('55%'),
+    height: hp(31.423),
+    borderRadius: hp(2.211),
+    flex : 1,
+    resizeMode: 'cover',
+  },
+  progress: {
+    height: hp(0.443),
+    width: wp('65.1%'),
+    marginTop: 10,
+    flexDirection: "row"
+  },
+  title: {
+    marginTop: hp(2.95),
+    fontSize: hp(2.95),
+    fontFamily: Constants.fontMedium,
+    color: Colors.SecondaryColor_2,
+    fontWeight: 'bold',
+    lineHeight: hp(2.655),
+  },
+  artist: {
+    fontSize: hp(1.77),
+    marginTop: hp(1.20),
+    fontFamily: Constants.fontRegular,
+    color: Colors.SecondaryColor_2,
+    lineHeight: hp(2.36),
+  },
+  controls: {
+    marginVertical: 20,
+    flexDirection: "row",
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  controlButtonContainer: {
+    flex: 1
+  },
+  controlButtonText: {
+    fontSize: 18,
+    textAlign: "center"
+  },
+  controlIcon: {
+    width: 40,
+    height: 40,
+    //elevation: 3,
+  },
+  controlChangeIcon: {
+    width: 30,
+    height: 30,
+    //elevation: 3,
+  },
+  playPause: {
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    padding: 10,
+    marginHorizontal: 15
+  },
+  changeIcon: {
+    borderRadius: 41,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    //elevation: 3,
+    padding: 10,
+    marginHorizontal: 15,
+  },
+  durationText: {
+    fontFamily: Constants.fontRegular,
+    fontSize: hp(1.44),
+    lineHeight: hp(2.36),
+    color: Colors.SecondaryColor_2
+  }
+});
+
+
+
+
+
+<Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{minute}</Text>
+           <Text style={styles.durationText}>:</Text>
+           <Text style={styles.durationText}>{seconds}</Text>
+
+
+            rightElement={(<View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
+                                        <Icon name='dots-three-vertical' type='entypo' size= {20} color= {Colors.PrimaryColor_2} />
+                                    </View>)}
+
+
+
+/*
+
+const MusicPlayerComponent = (props) => {
+    const playbackState = usePlaybackState()
+  //  const [PlaylistData, setPlayListData] = useState([{id: '',url: '',title: '',duration: 0, artist: '',artwork: ''}]);
+
+    useEffect(() => {
+      setup();
+      //connectApi();
+      playOnInit();
+    }, []);
+  
+    async function setup() {
+      await TrackPlayer.setupPlayer({});
+      await TrackPlayer.updateOptions({
+        stopWithApp: true,
+        playIcon: require('../../Images/play.png'),
+        previousIcon: require('../../Images/previous.jpg'),
+        nextIcon: require('../../Images/next.png'),
+        ratingType: TrackPlayer.RATING_HEART,
+        capabilities: [
+          TrackPlayer.CAPABILITY_PLAY,
+          TrackPlayer.CAPABILITY_PAUSE,
+          TrackPlayer.CAPABILITY_SKIP_TO_NEXT,
+          TrackPlayer.CAPABILITY_SKIP_TO_PREVIOUS,
+          TrackPlayer.CAPABILITY_STOP,
+          TrackPlayer.CAPABILITY_SET_RATING,
+          TrackPlayer.CAPABILITY_PLAY_FROM_ID
+        ],
+        compactCapabilities: [
+          TrackPlayer.CAPABILITY_PLAY,
+          TrackPlayer.CAPABILITY_PAUSE
+        ]
+      });
+    }
+
+
+    async function togglePlayback() {
+      const currentTrack = await TrackPlayer.getCurrentTrack();
+      if (currentTrack == null) {
+        await TrackPlayer.reset();
+        await TrackPlayer.add(PlaylistData);
+      /*  await TrackPlayer.add({
+          id: "local-track",
+          url: "https://drive.google.com/uc?export=download&id=1AjPwylDJgR8DOnmJWeRgZzjsohi-7ekj",
+          title: "Pure (Demo)",
+          artist: "David Chavez",
+          artwork: "https://i.picsum.photos/id/500/200/200.jpg",
+          duration: 28
+        }); 
+        await TrackPlayer.play();
+      } else {
+        if (playbackState === TrackPlayer.STATE_PAUSED) {
+          await TrackPlayer.play();
+        } else {
+          await TrackPlayer.pause();
+        }
+      }
+    }
+
+    async function playOnInit (){
+      await TrackPlayer.reset();
+    
+     var PlaylistData= [];
+      PlaylistData = [
+      {
+        "id": "1111",
+        "url": "https://drive.google.com/uc?export=download&id=1AjPwylDJgR8DOnmJWeRgZzjsohi-7ekj",
+        "title": "Longing",
+        "artist": "David Chavez",
+        "artwork": "https://i.picsum.photos/id/100/200/200.jpg",
+        "duration": 143
+      },
+      {
+        "id": "2222",
+        "url": "https://drive.google.com/uc?export=download&id=1VM9_umeyzJn0v1pRzR1BSm9y3IhZ3c0E",
+        "title": "Soul Searching (Demo)",
+        "artist": "David Chavez",
+        "artwork": "https://i.picsum.photos/id/200/200/200.jpg",
+        "duration": 77
+      },
+      {
+        "id": "3333",
+        "url": "https://drive.google.com/uc?export=download&id=1bmvPOy2IVbkUROgm0dqiZry_miiL4OqI",
+        "title": "Lullaby (Demo)",
+        "artist": "David Chavez",
+        "artwork": "https://i.picsum.photos/id/300/200/200.jpg",
+        "duration": 71
+      },
+      {
+        "id": "4444",
+        "url": "https://drive.google.com/uc?export=download&id=1V-c_WmanMA9i5BwfkmTs-605BQDsfyzC",
+        "title": "Rhythm City (Demo)",
+        "artist": "David Chavez",
+        "artwork": "https://i.picsum.photos/id/400/200/200.jpg",
+        "duration": 106
+      },
+      {
+          "id": "5555",
+          "url": "https://drive.google.com/uc?export=download&id=1AjPwylDJgR8DOnmJWeRgZzjsohi-7ekj",
+          "title": "Longing",
+          "artist": "David Chavez",
+          "artwork": "https://i.picsum.photos/id/100/200/200.jpg",
+          "duration": 143
+      },
+      {
+          "id": "6666",
+          "url": "https://drive.google.com/uc?export=download&id=1VM9_umeyzJn0v1pRzR1BSm9y3IhZ3c0E",
+          "title": "Soul Searching (Demo)",
+          "artist": "David Chavez",
+          "artwork": "https://i.picsum.photos/id/200/200/200.jpg",
+          "duration": 77
+      },
+      {
+          "id": "8888",
+          "url": "https://drive.google.com/uc?export=download&id=1V-c_WmanMA9i5BwfkmTs-605BQDsfyzC",
+          "title": "Rhythm City (Demo)",
+          "artist": "David Chavez",
+          "artwork": "https://i.picsum.photos/id/400/200/200.jpg",
+          "duration": 106
+      },
+      {
+        "id": "7777",
+        "url": "https://drive.google.com/uc?export=download&id=1bmvPOy2IVbkUROgm0dqiZry_miiL4OqI",
+        "title": "Lullaby (Demo)",
+        "artist": "David Chavez",
+        "artwork": "https://i.picsum.photos/id/300/200/200.jpg",
+        "duration": 71
+    },
+    ]  
+        await TrackPlayer.add(PlaylistData);
+        await TrackPlayer.play();
+    }
+
+    async function connectApi () {
+      console.log('you are in fetch api')
+      try { 
+        await fetch('http://10.0.2.2:3000/meditation', {
+           method: 'GET',
+         })
+         .then(res => res.json())
+         //.then(res => JSON.stringify(res))
+         .then( async data =>{
+           console.log('The data from server',data)
+           var songs= data.split('[')
+           var singer= songs[0].split(']')
+           setPlayListData(PlaylistData.concat(singer));
+           await setPlayListData(PlaylistData =>[...PlaylistData, data]);
+           console.log('the data in playlist:',PlaylistData,'----',data,'---',typeof(data), data.id)
+         })
+       } catch (error) {
+         console.log('the catch error',error)
+       } 
+    }  
+
+    async function skipToNext() {
+      try {
+        await TrackPlayer.skipToNext();
+      } catch (_) {}
+    }
+    
+    async function skipToPrevious() {
+      try {
+        await TrackPlayer.skipToPrevious();
+      } catch (_) {}
+    }
+  
+    return (
+        <View style={Styles.container} >
+            <Player
+              onNext={skipToNext}
+              style={Styles.player}
+              onPrevious={skipToPrevious}
+              onTogglePlayback={togglePlayback}
+              timerValue={props.value}
+            />
+        </View>
+    )
+}
+
+*/
+
+
+
+
+
+
+
+
+/*function ProgressBar(props) {
+  const progress = useTrackPlayerProgress();
+  var hour  = props.timerValue;
+  var minute = props.timerValue.Minute;
+  var seconds = props.timerValue.Seconds;
+
+  useEffect(() => {
+    progress.duration= totalSecond;
+  })
+
+/*  const getDuration = () => {
+    var secsInHour= hour * 3600;
+    var secsInMinute = minute * 60;
+    var totalSecs = secsInHour + secsInMinute + seconds;
+    progress.duration = totalSecs;
+    console.log('the totalsecs:', totalSecs, progress.duration);
+  } 
+  return (
+    <View style={styles.progress}>
+      <View style={{ flex: progress.position, backgroundColor: Colors.PrimaryColor_2 }} />
+      <View
+        style={{
+          flex:  progress.duration - progress.position,
+          backgroundColor: Colors.SecondaryColor_2,
+          opacity: 0.3
+        }}
+      />
+    </View>
+  );
+} */
+
+
+/*function ControlButton({ title, onPress }) {
+  return (
+    <TouchableOpacity style={styles.controlButtonContainer} onPress={onPress}>
+      <Text style={styles.controlButtonText}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function PlayToggleButton({name, onPress}) {
+  return (
+    <View>
+      <Icon raised name={name} type='entypo' size= {25}  onPress={onPress} color= {Colors.PrimaryColor_2}  />) : (<Icon raised name='controller-pause' type='entypo' size= {25}  onPress={onTogglePlayback} color= {Colors.PrimaryColor_2}  />
+    </View>
+  )
+}
+
+PlayToggleButton.prototype = {
+  icon :PropTypes.string.isRequired,
+  onPress: PropTypes.func.isRequired
+} 
+
+ControlButton.propTypes = {
+  title: PropTypes.string.isRequired,
+  onPress: PropTypes.func.isRequired
+};*/
+
+/*
+  setPlayBtn(true);
+
+  if (
+    playbackState === TrackPlayer.STATE_PLAYING ||
+    playbackState === TrackPlayer.STATE_BUFFERING
+  ) {
+    setPlayBtn(false);
+  }
+
+var middleButtonText = "Play";
+
+if (
+  playbackState === TrackPlayer.STATE_PLAYING ||
+  playbackState === TrackPlayer.STATE_BUFFERING
+) {
+  middleButtonText = "Pause";
+} */
+
+/*
+<ControlButton title={"<<"} onPress={onPrevious} />
+<ControlButton title={middleButtonText} onPress={onTogglePlayback} />
+        <ControlButton title={">>"} onPress={onNext} />
+         <Icon reverse name='controller-fast-backward' type='entypo'  size= {20} color= {Colors.PrimaryColor_2} />
+        <Icon reverse name='controller-play' type='entypo'  size= {25} color= {Colors.PrimaryColor_2} />
+        <Icon reverse name='controller-fast-forward' type='entypo'  size= {20} color= {Colors.PrimaryColor_2} />
+        <Avatar size="medium"
+                rounded
+  overlayContainerStyle={{borderRadius: 10, borderColor: Colors.ShadowColor}}
+  icon={{ name:'controller-play', type: 'entypo',  size: 25, color: Colors.PrimaryColor_2 }}
+  onPress={() => console.log("Works!")}
+  containerStyle={{ borderRadius: 10, borderColor: Colors.SecondaryColor_1}}
+ />
+
+ <View>
+        <View style={{flexDirection: 'row'}}>
+           <Text style={styles.durationText}>{hour}</Text><Text>:</Text><Text>{minute}</Text><Text>:</Text><Text>{seconds}</Text>
+        </View>
+      </View>
+
+  <Icon raised name='controller-fast-backward' type='entypo'  size= {20}  onPress={onPrevious}  color= {Colors.PrimaryColor_2} />
+      {showPlay ? (<PlayToggleButton name={"controller-play"} onPress={onTogglePlayback} />) : (<PlayToggleButton name={'controller-pause'} onPress={onTogglePlayback} />)}
+      <Icon raised name='controller-fast-forward' type='entypo'  size= {20} onPress={onNext} color= {Colors.PrimaryColor_2} />
+
+ <Icon raised name='controller-fast-backward' type='entypo'  size= {20}  onPress={onPrevious}  color= {Colors.PrimaryColor_2} />
+        <Icon raised name='controller-play' type='entypo' size= {25}  onPress={onTogglePlayback} color= {Colors.PrimaryColor_2} />
+        <Icon raised name='controller-fast-forward' type='entypo'  size= {20} onPress={onNext} color= {Colors.PrimaryColor_2} />
+*/
+
+
+//const [actPgrs,setActPgrs] = useState('')
+  
+  /*  useEffect(() => {
+      //progress.duration= totalSecond;
+      getDuration();
+    },[hour,minute,seconds])
+  
+    const getDuration = () => {
+      var secsInHour= hour * 3600;
+      var secsInMinute = minute * 60;
+      var totalSecs = secsInHour + secsInMinute + seconds;
+      progress.duration = totalSecs;
+      setActPgrs(totalSecs);
+      console.log('the totalsecs:', totalSecs, progress.duration,'min-sec:',secsInMinute, 'hour-min',secsInHour,'hour:',hour,'minute:',minute,'secs:',seconds, actPgrs);
+    } */
+
+
+
+import React, { Component, useEffect } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import { Constants, Colors } from '../../Styles';
+import { Icon, Avatar } from 'react-native-elements';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { MusicPlayerComponent } from '../../MusicPlayer';
+import TrackPlayer from "react-native-track-player";
+
+class MeditationAudioScreen extends Component {
+
+    constructor(props) {
+        super(props);
+        this.state = {
+          Hour: this.props.route.params.Hour,
+          Minute: this.props.route.params.Minute,
+          Seconds: this.props.route.params.Seconds,
+        }
+    }
+
+   componentDidMount() {
+      this.getDuration();
+   }
+
+   getDuration = () => {
+    var secsInHour= this.state.Hour * 3600;
+    var secsInMinute = this.state.Minute * 60;
+    var totalSecs = secsInHour + secsInMinute + this.state.Seconds;
+    var milliSecs = totalSecs * 1000;
+    this.invokeTimeout(milliSecs);
+  }
+
+  invokeTimeout = (milliSeconds) => {
+    setTimeout(this.stopPlayer,milliSeconds);
+  } 
+
+  stopPlayer = async() =>{
+    console.log('timeout!!!!')
+    await TrackPlayer.destroy();
+    await this.props.navigation.navigate('Med_Home')
+  }
+
+  Navigate_To_Playlist = () => {
+    this.props.navigation.navigate('Med_Playlist');
+  }
+
+  Navigate_To_Med_Home = async () => {
+    await TrackPlayer.destroy();
+    await this.props.navigation.navigate('Med_Home');
+  }
+
+    render () {
+        return (
+            <View style= {Styles.Container}>
+                <View style= {Styles.HeaderContainer}>
+                    <Icon name='arrowleft' type='antdesign'  size= {30} color= {Colors.white} onPress={this.Navigate_To_Med_Home}/>
+                    <View style={{flexDirection: 'column', justifyContent: 'space-between', paddingTop: hp(2.211), paddingLeft: hp(2.95), paddingRight: hp(13.275)}}>                    
+                        <Text style={Styles.HeaderText}>Meditation</Text>
+                        <Text style={Styles.SubHeaderText}>Your time to talk with baba </Text>
+                    </View>
+                    <View style={{ paddingRight: hp(2.95), paddingTop: hp(3.685)}}>
+                        <Avatar size={60} rounded  source={require("../../../Images/saibaba_loginScreen.jpg")} />
+                    </View>
+                </View>
+                <View style= {Styles.ContentContainer}>
+                    <MusicPlayerComponent value={this.state} />
+                </View>
+                <View style={Styles.SwipeContainer}>
+                    <View style={{width: wp(100), alignSelf: 'flex-start', marginTop: 0.1, backgroundColor:Colors.SecondaryColor_3, opacity: 0.7, height: hp(0.295)}}/>
+                    <View style={{width: wp(40), backgroundColor: Colors.SecondaryColor_3, opacity: 0.7, height: hp(0.295)}}></View>
+                    <Text style={{fontFamily: Constants.fontMedium, fontWeight:'bold',color: Colors.SecondaryColor_2, fontSize: hp(1.77), lineHeight: hp(2.655) }} onPress={this.Navigate_To_Playlist}>Swipe up for songs list</Text>
+                    <Text style={{fontFamily: Constants.fontRegular, marginBottom: hp(1.77),color: Colors.SecondaryColor_2, fontSize: hp(1.44), lineHeight: hp(2.36) }}>Only on Sai Maharaj app</Text>
+                </View>
+            </View>
+        )
+    }
+}
+
+const Styles= StyleSheet.create({
+    Container: {
+        flex: 1,
+    },
+    HeaderContainer: {
+        flex: 1.05,
+        backgroundColor: Colors.PrimaryColor_1,
+        paddingLeft: hp('2.95%'),
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+    },
+    HeaderText: {
+        fontFamily: Constants.fontProximaBold,
+        fontWeight: 'bold',
+        fontSize: hp('4.45%'),
+        color: Colors.white,
+        paddingBottom: 7,
+    },
+    SubHeaderText: {
+        fontFamily: Constants.fontProximaReg,
+        fontSize: hp('2%'),
+        color: Colors.white,
+        lineHeight: hp(2.211)
+    },
+    ContentContainer: {
+        flex: 3.60,
+        paddingHorizontal: hp('2.95%'),
+        backgroundColor: Colors.white
+    },
+    SwipeContainer: {
+        flex:0.70,
+        justifyContent: 'space-around',
+        alignItems: 'center'
+    }
+})
+
+export default MeditationAudioScreen;
+
+
+
+
+import React, { Component, useEffect } from 'react';
+import { View, StyleSheet, Text,TouchableHighlight } from 'react-native';
+import { Constants, Colors } from '../../Styles';
+import { Icon, Avatar } from 'react-native-elements';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { MusicPlayerComponent } from '../../MusicPlayer';
+import TrackPlayer from "react-native-track-player";
+
+class MeditationAudioScreen extends Component {
+
+    constructor(props) {
+        super(props);
+        this.state = {
+          Hour: this.props.route.params.Hour,
+          Minute: this.props.route.params.Minute,
+          Seconds: this.props.route.params.Seconds,
+        }
+    }
+
+   componentDidMount() {
+      this.getDuration();
+   }
+
+   getDuration = () => {
+    var secsInHour= this.state.Hour * 3600;
+    var secsInMinute = this.state.Minute * 60;
+    var totalSecs = secsInHour + secsInMinute + this.state.Seconds;
+    var milliSecs = totalSecs * 1000;
+    this.invokeTimeout(milliSecs);
+  }
+
+  invokeTimeout = (milliSeconds) => {
+    setTimeout(this.stopPlayer,milliSeconds);
+  } 
+
+  stopPlayer = async() =>{
+    console.log('timeout!!!!')
+    await TrackPlayer.destroy();
+    await this.props.navigation.navigate('Med_Home')
+  }
+
+  Navigate_To_Playlist = () => {
+    this.props.navigation.navigate('Med_Playlist');
+  }
+
+  Navigate_To_Med_Home = async () => {
+    await TrackPlayer.destroy();
+    await this.props.navigation.navigate('Med_Home');
+  }
+
+    render () {
+        return (
+            <View style= {Styles.Container}>
+                <View style= {Styles.HeaderContainer}>
+                    <Icon name='arrowleft' type='antdesign'  size= {30} color= {Colors.white} onPress={this.Navigate_To_Med_Home}/>
+                    <View style={{flexDirection: 'column', justifyContent: 'space-between', paddingTop: hp(2.211), paddingLeft: hp(2.95), paddingRight: hp(13.275)}}>                    
+                        <Text style={Styles.HeaderText}>Meditation</Text>
+                        <Text style={Styles.SubHeaderText}>Your time to talk with baba </Text>
+                    </View>
+                    <View style={{ paddingRight: hp(2.95), paddingTop: hp(3.685)}}>
+                        <Avatar size={60} rounded  source={require("../../../Images/saibaba_loginScreen.jpg")} />
+                    </View>
+                </View>
+                <View style= {Styles.ContentContainer}>
+                    <MusicPlayerComponent value={this.state} />
+                </View>
+                <View style={Styles.SwipeContainer}>
+                    <View style={{width: wp(100), borderTopRightRadius: 15, borderTopLeftRadius: 15, alignSelf: 'flex-start', marginTop: 0.1, backgroundColor:Colors.SecondaryColor_3, opacity: 0.7, height: hp(0.295)}}/>
+                    <View style={{width: wp(40), backgroundColor: Colors.SecondaryColor_3, opacity: 0.7, height: hp(0.295)}}></View>
+                    <Text style={{fontFamily: Constants.fontMedium, fontWeight:'bold',color: Colors.SecondaryColor_2, fontSize: hp(1.77), lineHeight: hp(2.655) }} onPress={this.Navigate_To_Playlist}>Swipe up for songs list</Text>
+                    <Text style={{fontFamily: Constants.fontRegular, marginBottom: hp(1.77),color: Colors.SecondaryColor_2, fontSize: hp(1.44), lineHeight: hp(2.36) }}>Only on Sai Maharaj app</Text>
+                </View>
+            </View>
+        )
+    }
+}
+
+const Styles= StyleSheet.create({
+    Container: {
+        flex: 1,
+    },
+    HeaderContainer: {
+        flex: 1.05,
+        backgroundColor: Colors.PrimaryColor_1,
+        paddingLeft: hp('2.95%'),
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+    },
+    HeaderText: {
+        fontFamily: Constants.fontProximaBold,
+        fontWeight: 'bold',
+        fontSize: hp('4.45%'),
+        color: Colors.white,
+        paddingBottom: 7,
+    },
+    SubHeaderText: {
+        fontFamily: Constants.fontProximaReg,
+        fontSize: hp('2%'),
+        color: Colors.white,
+        lineHeight: hp(2.211)
+    },
+    ContentContainer: {
+        flex: 3.60,
+        paddingHorizontal: hp('2.95%'),
+        backgroundColor: Colors.white
+    },
+    SwipeContainer: {
+        flex:0.70,
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        backgroundColor: Colors.white,
+    }
+})
+
+export default MeditationAudioScreen;
+
+
+/
+
+vigneshwaran P11:47 AM
+News.update(
+      {_id: id, 'items.link': news.link},
+      {$inc: {'items.$.clicks': 1}}
+    );
+vigneshwaran P12:04 PM
+/** To create online meeting
+@api {public}
+@param {object} req
+@param {object} res
+**/

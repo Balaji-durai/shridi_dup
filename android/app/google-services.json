@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "910563901267",
+    "firebase_url": "https://shridisaimaharaj-aba0f.firebaseio.com",
+    "project_id": "shridisaimaharaj-aba0f",
+    "storage_bucket": "shridisaimaharaj-aba0f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910563901267:android:a438c2b7a6507dd3a5eba6",
+        "android_client_info": {
+          "package_name": "com.shridisaimaharaj"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "910563901267-tvodlj7hb99n9ava58gv18u527kq8igt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.shridisaimaharaj",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "910563901267-uckgpdn25mgr2s3l6e5h6dl9ssq2es1n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA32cMT7RJHpXDD-mp_nano2bT4dFSWAuQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "910563901267-66quoscgin2pb7akuvfu90ecg6df5mve.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
